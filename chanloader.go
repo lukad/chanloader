@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strconv"
-	"strings"
+	"runtime"
 	"time"
 )
 
@@ -20,22 +20,24 @@ const (
 )
 
 var (
-	// threadRegex = regexp.Compile("/?([a-z]+)(?:res)?/(\\d+)")
-	lastDownload int64
-	board        string
-	threadId     string
-	boards       string         = "a|b|c|d|e|f|g|gif|h|hr|k|m|o|p|r|s|t|u|v|vg|w|wg|i|ic|r9k|cm|hm|y|3|adv|an|cgl|ck|co|diy|fa|fit|hc|int|jp|lit|mlp|mu|n|po|pol|sci|soc|sp|tg|toy|trv|tv|vp|wsg|x|q"
+	downloaded []int64
+	board      string
+	threadId   string
+	boards     string = "a|b|c|d|e|f|g|gif|h|hr|k|m|o|p|r|s|t|u|v|vg|w|wg|i|ic|r9k|cm|hm|y|3|adv|an|cgl|ck|co|diy|fa|fit|hc|int|jp|lit|mlp|mu|n|po|pol|sci|soc|sp|tg|toy|trv|tv|vp|wsg|x|q"
+
+	// Options
 	minWidth     *int64         = flag.Int64P("min-width", "w", 0, "Minimum width of images")
 	minHeight    *int64         = flag.Int64P("min-height", "h", 0, "Minimum height of images")
 	refresh      *time.Duration = flag.DurationP("refresh", "r", time.Second*30, "Refresh rate (min 30s)")
+	orignalNames *bool          = flag.BoolP("original-names", "o", false, "Save images under original filenames")
 	showVersion  *bool          = flag.BoolP("version", "v", false, "Show version")
 )
 
 type Post struct {
 	No             int64
 	Resto          int64
-	Sticky         int64
-	Closed         int64
+	Sticky         bool
+	Closed         bool
 	Now            string
 	Time           int64
 	Name           string
@@ -56,9 +58,9 @@ type Post struct {
 	H              int64
 	Tn_w           int64
 	Tn_h           int64
-	Filedeleted    int64
-	Spoiler        int64
-	Custom_spoiler int64
+	Filedeleted    bool
+	Spoiler        bool
+	Custom_spoiler bool
 	Omitted_posts  int64
 	Omitted_images int64
 }
@@ -104,37 +106,74 @@ func parseThreadFromJson(r io.Reader) (Thread, error) {
 	return t, nil
 }
 
-func downloadImage(tim int64, ext string) {
-	lastDownload = tim
-	fileName := fmt.Sprintf("%s%s", strconv.FormatInt(tim, 10), ext)
-	url := fmt.Sprintf("https://images.4chan.org/%s/src/%s", board, fileName)
+func downloadImage(p Post) {
+	if p.W < *minWidth || p.H < *minHeight {
+		return
+	}
 
-	img, err := getUrl(url)
+	url := fmt.Sprintf("https://images.4chan.org/%s/src/%d%s", board, p.Tim, p.Ext)
+	img, _, err := getUrl(url)
 	checkError(err)
+
+	var fileName string
+	if *orignalNames {
+		fileName = fmt.Sprintf("%s%s", p.Filename, p.Ext)
+	} else {
+		fileName = fmt.Sprintf("%d%s", p.Tim, p.Ext)
+	}
 
 	err = ioutil.WriteFile(fileName, img, 0644)
 	checkError(err)
+
+	downloaded = append(downloaded, p.Tim)
 }
 
-func getUrl(url string) ([]byte, error) {
+func getUrl(url string) ([]byte, int, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return []byte{}, nil
+		return []byte{}, 0, nil
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []byte{}, nil
+		return []byte{}, 0, nil
 	}
-	return body, nil
+	return body, resp.StatusCode, nil
 
 }
 
-func loadThread() {
-	resp, err := getUrl(fmt.Sprintf("https://api.4chan.org/%s/res/%s.json", board, threadId))
-	checkError(err)
+func wasDownloaded(p Post) bool {
+	for _, e := range downloaded {
+		if e == p.Tim {
+			return true
+		}
+	}
+	return false
+}
 
-	thread, err := parseThread(strings)
+func loadThread() {
+	url := fmt.Sprintf("https://api.4chan.org/%s/res/%s.json", board, threadId)
+	resp, status, err := getUrl(url)
+	checkError(err)
+	if status != 200 {
+		if status == 404 {
+			fmt.Println("Thread 404'd.")
+			os.Exit(1)
+		}
+		fmt.Printf("Something went wrong\nGot return code %d at '%s'.\n", status, url)
+		return
+	}
+
+	thread, err := parseThreadFromJson(bytes.NewReader(resp))
+	if err != nil {
+		fmt.Println("Could not parse thread")
+	}
+
+	for _, e := range thread.Posts {
+		if !wasDownloaded(e) {
+			go downloadImage(e)
+		}
+	}
 }
 
 func init() {
@@ -153,6 +192,8 @@ func init() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
 func main() {
