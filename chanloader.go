@@ -202,6 +202,7 @@ func main() {
 	b, id, err := parseThreadId(flag.Arg(0))
 	if err != nil {
 		fmt.Printf("Invalid input: %s\n", flag.Arg(0))
+		flag.Usage()
 		os.Exit(1)
 	}
 	board, threadId = b, id
@@ -212,7 +213,4 @@ func main() {
 		go loadThread()
 		<-ticker.C
 	}
-
-	var x string
-	fmt.Scanln(&x)
 }
