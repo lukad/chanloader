@@ -184,6 +184,9 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+	if *refresh < time.Second*30 {
+		*refresh = time.Second * 30
+	}
 
 	if *showVersion {
 		fmt.Println(version)
