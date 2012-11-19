@@ -65,15 +65,24 @@ type Post struct {
 	Omitted_images int64
 }
 
+func (p *Post) FullFileName(original bool) (s string) {
+	if original {
+		s = fmt.Sprintf("%s%s", p.Filename, p.Ext)
+	} else {
+		s = fmt.Sprintf("%d%s", p.Tim, p.Ext)
+	}
+	return
+}
+
+type Thread struct {
+	Posts []Post
+}
+
 func checkError(err error) {
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-}
-
-type Thread struct {
-	Posts []Post
 }
 
 func parseThreadId(s string) (b, id string, err error) {
@@ -115,14 +124,7 @@ func downloadImage(p Post) {
 	img, _, err := getUrl(url)
 	checkError(err)
 
-	var fileName string
-	if *orignalNames {
-		fileName = fmt.Sprintf("%s%s", p.Filename, p.Ext)
-	} else {
-		fileName = fmt.Sprintf("%d%s", p.Tim, p.Ext)
-	}
-
-	err = ioutil.WriteFile(fileName, img, 0644)
+	err = ioutil.WriteFile(p.FullFileName(*orignalNames), img, 0644)
 	checkError(err)
 
 	downloaded = append(downloaded, p.Tim)
@@ -157,7 +159,7 @@ func loadThread() {
 	checkError(err)
 	if status != 200 {
 		if status == 404 {
-			fmt.Println("Thread 404'd.")
+			fmt.Println("Thread 404'd")
 			os.Exit(1)
 		}
 		fmt.Printf("Something went wrong\nGot return code %d at '%s'.\n", status, url)
@@ -203,7 +205,6 @@ func main() {
 		os.Exit(1)
 	}
 	board, threadId = b, id
-	fmt.Println(b, id)
 
 	ticker := time.NewTicker(*refresh)
 	for {
