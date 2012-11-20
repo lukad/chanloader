@@ -116,7 +116,8 @@ func parseThreadFromJson(r io.Reader) (Thread, error) {
 }
 
 func downloadImage(p Post) {
-	if p.W < *minWidth || p.H < *minHeight {
+	if p.W < *minWidth || p.H < *minHeight || p.Filedeleted {
+		downloaded = append(downloaded, p.Tim)
 		return
 	}
 
