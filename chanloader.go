@@ -21,8 +21,6 @@ const (
 
 var (
 	downloaded []int64
-	board      string
-	threadId   string
 	boards     string = "a|b|c|d|e|f|g|gif|h|hr|k|m|o|p|r|s|t|u|v|vg|w|wg|i|ic|r9k|cm|hm|y|3|adv|an|cgl|ck|co|diy|fa|fit|hc|int|jp|lit|mlp|mu|n|po|pol|sci|soc|sp|tg|toy|trv|tv|vp|wsg|x|q"
 
 	// Options
@@ -115,7 +113,7 @@ func parseThreadFromJson(r io.Reader) (Thread, error) {
 	return t, nil
 }
 
-func downloadImage(p Post) {
+func downloadImage(board string, p Post) {
 	if p.W < *minWidth || p.H < *minHeight || p.Filedeleted {
 		downloaded = append(downloaded, p.Tim)
 		return
@@ -154,8 +152,8 @@ func wasDownloaded(p Post) bool {
 	return false
 }
 
-func loadThread() {
-	url := fmt.Sprintf("https://api.4chan.org/%s/res/%s.json", board, threadId)
+func loadThread(board string, id string) {
+	url := fmt.Sprintf("https://api.4chan.org/%s/res/%s.json", board, id)
 	resp, status, err := getUrl(url)
 	checkError(err)
 	if status != 200 {
@@ -174,7 +172,7 @@ func loadThread() {
 
 	for _, e := range thread.Posts {
 		if !wasDownloaded(e) {
-			go downloadImage(e)
+			go downloadImage(board, e)
 		}
 	}
 }
@@ -203,18 +201,17 @@ func init() {
 }
 
 func main() {
-	b, id, err := parseThreadId(flag.Arg(0))
+	board, id, err := parseThreadId(flag.Arg(0))
 	if err != nil {
 		fmt.Printf("Invalid input: %s\n", flag.Arg(0))
 		flag.Usage()
 		os.Exit(1)
 	}
-	board, threadId = b, id
 
 	ticker := time.NewTicker(*refresh)
 	for {
 		fmt.Println("Loading thread")
-		go loadThread()
+		go loadThread(board, id)
 		<-ticker.C
 	}
 }
