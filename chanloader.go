@@ -8,6 +8,7 @@ import (
 	flag "github.com/ogier/pflag"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -78,7 +79,7 @@ type Thread struct {
 
 func checkError(err error) {
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		os.Exit(1)
 	}
 }
@@ -158,7 +159,7 @@ func loadThread(board string, id string) {
 	checkError(err)
 	if status != 200 {
 		if status == 404 {
-			fmt.Println("Thread 404'd")
+			log.Println("Thread 404'd")
 			os.Exit(1)
 		}
 		fmt.Printf("Something went wrong\nGot return code %d at '%s'.\n", status, url)
@@ -167,7 +168,7 @@ func loadThread(board string, id string) {
 
 	thread, err := parseThreadFromJson(bytes.NewReader(resp))
 	if err != nil {
-		fmt.Println("Could not parse thread")
+		log.Println("Could not parse thread")
 	}
 
 	for _, e := range thread.Posts {
@@ -210,7 +211,7 @@ func main() {
 
 	ticker := time.NewTicker(*refresh)
 	for {
-		fmt.Println("Loading thread")
+		log.Println("Loading thread")
 		go loadThread(board, id)
 		<-ticker.C
 	}
