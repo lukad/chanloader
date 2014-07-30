@@ -85,7 +85,7 @@ func checkError(err error) {
 }
 
 func parseThreadId(s string) (b, id string, err error) {
-	r, err := regexp.Compile(fmt.Sprintf("^/?(%s)/(?:res/)?(\\d+)", boards))
+	r, err := regexp.Compile(fmt.Sprintf("^(?:https?://boards.4chan.org)?/?(%s)/(?:thread/)?(\\d+).+$", boards))
 	if err != nil {
 		return b, id, err
 	}
@@ -180,7 +180,7 @@ func loadThread(board string, id string) {
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "Usage: chanloader [options] /b/res/123456\nOptions:")
+		fmt.Fprintln(os.Stderr, "Usage: chanloader [options] [http(s)://boards.4chan.org/]b/thread/123456[/thread-name]\nOptions:")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
