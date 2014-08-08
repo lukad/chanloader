@@ -4,6 +4,8 @@
 
     $ go get -u github.com/lukad/chanloader
 
+Binaries (not for all platforms) can be found [here](https://github.com/lukad/chanloader/releases).
+
 Alternatively, [chanloader](https://aur.archlinux.org/packages/chanloader/) is available as an AUR Package for Arch Linux.
 
 ## Contributing
