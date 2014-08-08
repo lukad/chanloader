@@ -8,6 +8,16 @@ Binaries (not for all platforms) can be found [here](https://github.com/lukad/ch
 
 Alternatively, [chanloader](https://aur.archlinux.org/packages/chanloader/) is available as an AUR Package for Arch Linux.
 
+## Usage
+
+    Usage: chanloader [options] [http(s)://boards.4chan.org/]b/thread/123456[/thread-name]
+    Options:
+      -h, --min-height=0: Minimum height of images
+      -w, --min-width=0: Minimum width of images
+      -o, --original-names=false: Save images under original filenames
+      -r, --refresh=30s: Refresh rate (min 30s)
+      -v, --version=false: Show version
+
 ## Contributing
 
 1. Fork it
